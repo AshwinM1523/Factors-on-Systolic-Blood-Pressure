@@ -1,0 +1,459 @@
+---
+title: "A Case Study on the Influence of Lifestyle Factors on Systolic Blood Pressure"
+date: "2024-04-08"
+output: "pdf_document"
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(tidy=TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Authors
+
+\begin{center}
+\begin{tabular}{c}
+Adam Badar (1007965338) \\
+Ashwin Mallik (1008329729) \\
+Alex Zeng (1008064381) \\
+Francis Ayyad (1008091985)
+\end{tabular}
+\end{center}
+
+## Background and Significance
+
+
+Systolic Blood Pressure (SBP) has emerged as a significant medical concern across various age groups, posing serious health risks and mortality rates, particularly in adulthood (Theodore, R. F., et al., 2015). It is closely linked with cardiovascular health and is influenced by numerous factors, including age, weight, and height. Given the pressing medical issues associated with high blood pressure, our study aims to employ statistical models and inferences to identify the most significant predictors of SBP. By analyzing measurements from 500 patients, we seek to develop a model that accurately represents the relationship between SBP and various factors such as age, weight, height, and other lifestyle choices.
+
+Understanding the determinants of SBP is crucial for guiding interventions and policies aimed at improving heart health. Lifestyle factors such as diet, exercise, and alcohol consumption play a significant role in influencing SBP levels. Through exploratory data analysis and model building, we aim to isolate the effects of these factors and their interactions on SBP. Our study's significance lies in its potential to highlight modifiable lifestyle factors that individuals can address to proactively improve their cardiovascular health.
+
+The dataset used in our analysis comprises various lifestyle and demographic variables related to individuals' choices and characteristics. Through descriptive statistics and graphical visualization, we explore the distribution of these variables and their effects on SBP. Model building involves constructing main effect and interaction models, refined using backward elimination and Akaike Information Criterion (AIC). Our analysis identifies significant interactions among categorical variables, indicating the nuanced effects of lifestyle factors across different demographic groups.
+
+Model diagnostics, including Cook's Distance, help identify and remove outliers, enhancing the reliability of our models. Validation is performed using a training-testing split, with findings indicating the superior predictive power of the Interaction Model. Our study underscores the importance of considering both individual behaviors and demographic contexts in addressing SBP determinants.
+
+In conclusion, our study contributes to the understanding of SBP determinants and serves as a foundational step towards personalized healthcare interventions targeting modifiable lifestyle factors. While our analysis provides valuable insights, future research could explore genetic factors and additional lifestyle variables to further enhance our understanding of SBP dynamics.
+
+\newpage
+
+## Exploratory Data Analysis
+To begin our investigation, we can start off by examining our given data set of 500
+observations. The continuous variables we have are age, weight, height, and body
+mass index (BMI). Plotting out the violin chart for each variable's distribution,
+it is clear that these variables are mostly evenly distributed with the exception 
+of BMI, which has a noticeably lower density towards the upper tail.
+```{r, echo=FALSE, warning=FALSE}
+library(readxl)
+data <- read_excel("BloodPressure.xlsx")
+```
+```{r, echo=FALSE, warning=FALSE}
+age_data <- data[,6]
+weight_data <- data[,7]
+height_data <- data[,8]
+BMI_data <- data[,13]
+names(data)[6] <- "Age"
+names(data)[7] <- "Weight"
+names(data)[8] <- "Height"
+names(data)[13] <- "BMI"
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+library(ggplot2)
+library(gridExtra)
+plot1 <- ggplot(data, aes(x = factor(1), y = Age)) + 
+  geom_violin(fill = 'blue') +
+  geom_boxplot(width=0.1, fill="black") +
+  labs(y = "Years", x = "Age") +
+  theme_minimal()
+
+plot2 <- ggplot(data, aes(x = factor(1), y = Weight)) +
+  geom_violin(fill = 'red') +
+  geom_boxplot(width=0.1, fill="black") +
+  labs(y = "lbs", x = "Weight") +
+  theme_minimal()
+
+
+plot3 <- ggplot(data, aes(x = factor(1), y = Height)) +
+  geom_violin(fill = 'orange') +
+  geom_boxplot(width=0.1, fill="black") +
+  labs(y = "cm", x = "Height") +
+  theme_minimal()
+
+plot4 <- ggplot(data, aes(x = factor(1), y = BMI)) +
+  geom_violin(fill = 'green') +
+  geom_boxplot(width=0.1, fill="black") +
+  labs(y = "", x = "BMI") +
+  theme_minimal()
+```
+```{r, echo=FALSE, warning=FALSE}
+grid.arrange(plot1, plot2, plot3, plot4, ncol = 4)
+```
+Upon further investigation using scatter plots with relation to the systolic blood
+pressure, it can be concluded that, holding all other factors constant, there exist
+a significant linear relationship between for weight, height, and BMI. This is
+explained by the incline in the fitted line for weight and BMI data points, and
+decline for height data points. Age is suspected to not have a significant linear
+relationship with SBP due to the flat fitted and can be confirmed to be the case
+by examining the summary of the model. With a P-value of 0.4032, we can conclude 
+that we failed to reject the null hypothesis of the slope being zero, which suggests
+that there is indeed no significant relationship with SBP. In brief, age will not
+be a good predictor on its own as compared height, weight, and BMI.
+```{r, echo=FALSE, warning=FALSE}
+SBP <- data[,1]
+names(data)[1] <- "SBP"
+plot14 <- ggplot(data, aes(x = Age, y = SBP)) +
+  geom_point() +  
+  geom_smooth(method = "lm") +  
+  labs(y = "SBP", x = "Age") +
+  theme_minimal()
+plot15 <- ggplot(data, aes(x = Weight, y = SBP)) +
+ geom_point() +  # Adds the raw data points
+  geom_smooth(method = "lm") + 
+  labs(y = "SBP", x = "Weight") +
+  theme_minimal()
+plot16 <- ggplot(data, aes(x = Height, y = SBP)) +
+  geom_point() +  # Adds the raw data points
+  geom_smooth(method = "lm") + 
+  labs(y = "SBP", x = "Height") +
+  theme_minimal()
+plot17 <- ggplot(data, aes(x = BMI, y = SBP)) +
+ geom_point() +  # Adds the raw data points1024
+  geom_smooth(method = "lm") + 
+  labs(y = "SBP", x = "BMI") +
+  theme_minimal()
+
+grid.arrange(plot14, plot15, plot16, plot17)
+
+summary(lm(SBP ~ Age, data=data))
+
+```
+
+Exploring the categorical variables, we can compare the distributions across 
+different categories for each variable to get a sense of how the SBP differs for
+each category of the same factor to determine if this variable is significant or
+remains constant throughout different categories. We will divide these variable
+into three categories from not influential to moderate to very influential.   
+
+The variables that seem to not have a significant effect of difference in distribution
+across different categories are gender, ability to bear children,
+levels of stress, levels of salt intake, and levels of income. This suggest that
+these candidates could potentially be dropped for the model training as it may not
+contribute as a significant factor when it comes to determining SBP.
+
+The variables that have a moderate change in distribution across different categories
+are being married, smoking levels, exercise levels, obesity level, alcohol intake levels,
+and levels of education.
+
+The remaining variables of treatment for hypertension and race pose a high influence
+as it shows a significant change in distribution of SBP across different categories.
+Having received treatment for hypertension, the distribution of SBP is highly concentrated
+near the mean with an extremely low variance, while no treatment seems to have an
+inverse distribution as the variance is extremely high and data points are not
+concentrated at any point. The other factor of race shows a significant difference 
+in categories 3 and 4 between 1 and 2, this not is surprising as race is a dominant
+genetic factor for SBP (Cené, C. W., et al., 2009). 
+```{r, echo=FALSE, warning=FALSE}
+Gender <- data[,2]
+Married <- data[,3]
+Smoke <- data[,4]
+
+Exercise <- data[,5]
+Obesity <- data[,9]
+Race <- data[,10]
+Alcohol <- data[,11]
+trt <- data[,12]
+Stress <- data[,14]
+salt <- data[,15]
+childbear <- data[,16]
+income <- data[,17]
+education <- data[,18]
+names(data)[2] <- "Gender"
+names(data)[3] <- "Married"
+names(data)[4] <- "Smoke"
+names(data)[5] <- "Exercise"
+names(data)[9] <- "Obesity"
+names(data)[10] <- "Race"
+names(data)[11] <- "Alcohol"
+names(data)[12] <- "trt"
+names(data)[14] <- "Stress"
+names(data)[15] <- "salt"
+names(data)[16] <- "childbear"
+names(data)[17] <- "income"
+names(data)[18] <- "education"
+```
+```{r, echo=FALSE}
+library(ggplot2)
+library(gridExtra)
+plot1 = ggplot(data, aes(x = Gender, y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+      geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Gender", y = "SBP") +
+  theme_minimal()
+plot2 = ggplot(data, aes(x = Married, y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+      geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Married", y = "SBP") +
+  theme_minimal()
+plot3 = ggplot(data, aes(x = Smoke, y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+      geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Smoking", y = "SBP") +
+  theme_minimal()
+plot4 <- ggplot(data, aes(x = factor(Exercise), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Exercise", y = "SBP") +
+  theme_minimal()
+plot5 <- ggplot(data, aes(x = factor(Obesity), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Obesity Level", y = "SBP") +
+  theme_minimal()
+plot6 <- ggplot(data, aes(x = factor(Race), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Race", y = "SBP") +
+  theme_minimal()
+plot7 <- ggplot(data, aes(x = factor(Alcohol), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Alcohol", y = "SBP") +
+  theme_minimal()
+plot8 <- ggplot(data, aes(x = factor(trt), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Treatment", y = "SBP") +
+  theme_minimal()
+plot9 <- ggplot(data, aes(x = factor(Stress), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "Stress", y = "SBP") +
+  theme_minimal()
+plot10 <- ggplot(data, aes(x = factor(salt), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "salt", y = "SBP") +
+  theme_minimal()
+plot11 <- ggplot(data, aes(x = factor(childbear), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "childbear", y = "SBP") +
+  theme_minimal()
+plot12 <- ggplot(data, aes(x = factor(income), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "income", y = "SBP") +
+  theme_minimal()
+plot13 <- ggplot(data, aes(x = factor(education), y = SBP)) + 
+  geom_violin(trim = FALSE) + 
+    geom_boxplot(width=0.1, fill="black") +
+  labs(x = "education", y = "SBP") +
+  theme_minimal()
+plot14 <- ggplot(data, aes(x = Age, y = SBP)) +
+  geom_point() +  # Adds the raw data points
+  geom_smooth(method = "lm") +  # Adds a linear regression line
+  labs(y = "SBP", x = "Age") +
+  theme_minimal()
+plot15 <- ggplot(data, aes(x = Weight, y = SBP)) +
+ geom_point() +  # Adds the raw data points
+  geom_smooth(method = "lm") +  # Adds a linear regression line
+  labs(y = "SBP", x = "Weight") +
+  theme_minimal()
+plot16 <- ggplot(data, aes(x = Height, y = SBP)) +
+  geom_point() +  # Adds the raw data points
+  geom_smooth(method = "lm") +  # Adds a linear regression line
+  labs(y = "SBP", x = "Height") +
+  theme_minimal()
+plot17 <- ggplot(data, aes(x = BMI, y = SBP)) +
+ geom_point() +  # Adds the raw data points1024
+  geom_smooth(method = "lm") +  # Adds a linear regression line
+  labs(y = "SBP", x = "BMI") +
+  theme_minimal()
+```
+```{r}
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, plot7, 
+             plot8, plot9, plot10, plot11, plot12, plot13, ncol=4)
+```
+
+
+After obtaining some insight on the relationship between SBP and the factors, we 
+can examine the relationship between all the factors by inspecting the correlation
+between them. First, we can use a heat map to view the correlation between our
+four continuous variables. It is shown that BMI is relatively correlated with
+both height and weight, which flags it as a candidate to be dropped for model
+training.
+```{r, echo=FALSE, warning=FALSE}
+library(corrplot)
+continuous_data <- data[, c("Weight", "Height", "Age", "BMI")]
+
+cor_matrix <- cor(continuous_data, use = "complete.obs")
+corrplot(cor_matrix, method = "color", type = "upper", order = "hclust",
+         tl.col = "black", tl.srt = 45, addCoef.col = "black")
+```
+Furthermore, revealing the variance inflation factor of the obesity levels,
+we can see that it shows some moderate multicollinearity with height and weight.
+Which flags it as a candidate to be left out.
+
+That is also the case with gender and the ability to bear children, it goes without
+saying that being a biological male, it would be impossible to bear a child. This 
+means that there is a strong negative correlation between these two factors and one 
+can be considered to be dropped
+```{r, echo=FALSE, warning=FALSE}
+
+bmi = data$BMI
+age = data$Age
+height = data$Height
+weight = data$Weight
+
+model <- lm(data$SBP ~ weight + height + factor(data$Obesity))
+
+
+library(car)
+
+vif(model)
+
+```
+
+\newpage
+
+
+## Model
+
+The group has decided that more than one model will be built, and a process of
+model selection will take place in order to find the more effective mode. To
+achieve this, the two models that will be tested upon will be a main effect
+model of all the cleaned data from the previous step (a model with no correlated
+variables), and a model with interaction.
+
+### Main Effect Model
+To begin with, we considered a model with only interactions with the following
+structure:
+
+```{r, echo=FALSE, warning=FALSE}
+library(readxl)
+data <- read_excel("BloodPressure.xlsx", n_max=350)
+```
+
+```{r}
+full_additive <- lm(sbp ~ weight + height + age + factor(gender) + 
+                      factor(married) + factor(smoke) + factor(race) + 
+                      factor(alcohol) + factor(trt) + factor(stress) + 
+                      factor(salt) + factor(income) + factor(educatn)+ 
+                      factor(exercise), data = data)
+```
+After identifying the model, we were able to run a summary of the model and gain
+some information from it.
+```{r}
+summary(full_additive)
+```
+Next as part of an attempt to build a better model, a model based AIC approach
+was used, using the backward elimination algorithm.
+
+![](additiveModel.png)
+And based on the result of the AIC method we were able to find a reduced additive model with the following form with the following summary:
+```{r}
+reducedAdditive <- lm(sbp ~ weight + age + factor(smoke) + factor(alcohol) +
+                        factor(trt) + factor(income) + factor(exercise), 
+                      data = data)
+```
+![](reducedAdditive.png)
+As it can be observed the reduced model has a lower $R^2$ value however a lower AIC. This lead the group to think that there might some interaction terms that would make the model much more powerful.
+
+### Interaction Model
+When observing the data we believed that age, weight and height could have interactions with other variables, and effects on it. We saw that these continuous variables, when interacting with the categorical variables may allow the model to grow in predictive power. Thus our interactive model looked as follows:
+```{r}
+interactive_model <- lm(sbp ~ weight + height + age +
+      + factor(married) + factor(married) * weight + factor(married) * height + 
+        factor(married) * age + factor(married)
+      +  factor(smoke) + factor(smoke) * weight + factor(smoke) * height + 
+        factor(smoke) * age + factor(smoke)
+      +  factor(exercise) + factor(exercise) * weight + factor(exercise) * 
+        height + factor(exercise) * age
+      + factor(race) + factor(race) * weight + factor(race) * height + 
+        factor(race) * age + factor(race)
+      + factor(alcohol) + factor(alcohol) * weight + factor(alcohol) * height + 
+        factor(alcohol) * age
+      + factor(trt) + factor(trt) * weight + factor(trt) * height + factor(trt) 
+      * age + factor(income) + factor(income) * weight + factor(income) * 
+        height + factor(income) * age +  factor(educatn) + factor(educatn) * 
+        weight + factor(educatn) * height + factor(educatn) * age
+        +  factor(salt) + factor(salt) * weight + factor(salt) * height + 
+        factor(salt) * age
+    +  factor(gender) + factor(gender) * weight + factor(gender) * height + 
+      factor(gender) * age , data = data)
+```
+Following the same steps as before, a model based AIC approach was taken where the backward elimination algorithm was being implemented. Here is the output of the following algorithm:
+
+![](modelInterOutput.png)
+And thus the reduced model looked as follows:
+```{r}
+modelAIC2 <- lm(sbp ~ weight + height + age + factor(smoke) + factor(exercise) + 
+    factor(race) + factor(alcohol) + factor(trt) + factor(income) + 
+    factor(salt) + factor(gender) + weight:factor(smoke) + age:factor(smoke) + 
+    weight:factor(exercise) + weight:factor(race) + height:factor(race) + 
+    age:factor(income) + weight:factor(salt) + age:factor(gender), data=data)
+```
+The model has now a the largest adjusted R-Squared so far and a higher R-squared than the main effect model. And thus the backtracking based AIC approach was beneficial in this situation, while it got rid of many of the factors reducing the number of features.
+
+### Model Selection
+The next important step after building the following models would be to preform model selection, a process of identifying the model based on the following factors: AIC, BIC, adjusted $R^2$, multiple $R^2$ and PRESS. Below is a comprehensive table that summarizes the findings:
+
+![](modelSelection.png)
+The result is clear, the interaction model has a higher multiple and adjusted $R^2$, a lower AIC and BIC, a $C_p$ closest to the $p'$ value, and a smaller PRESS. By preforming better on all the following criteria it becomes clear that the interaction model is the better preforming model.
+
+### Influential Points
+Cleaning the model is an essential process that involves finding outlines that may effect the model and deleting them from the model. To complete this process, we used cooks distance to identify influential points, and had a threshold value. If Cooks distance had a larger value than the threshold we would eliminate it from the model.
+
+### Diagnostics
+After cleaning the data diagnostics were run on the model to check for model assumptions.
+The following graphs would give us the best feedback on the model assumptions:
+
+![](QQPlot.png)
+
+![](ResidualsvsFitted.png)
+The first graph showcases normality, while the residuals vs fitted graph showcases homoscedasticity with constant variance around the y = 0 line.
+
+### Model Validation
+Finally validation as used to determine weather the model has similar performances on new training data. To accommodate for this, the models above were trained only on 70% of the data while the remaining 30% where kept aside for validation. And upon running validation on the model, the standard error on the validation set was approximately 35 opposed to the 20 from our training set. While having larger error in the testing set makes sense, this value is extremely large in relation to blood pressure since in the context of blood pressure 35 units is a significant amount. This can be explained by the small predictive power of the model as described by the small $R^2$ value from the training model, and thus this model isn't a strong predictive model. However, in the context of the research, the model is able to identity factors that have the highest influence on the model from the provided data set.
+
+\newpage
+
+### Goal of the Study
+The primary goal of this study was to identify significant factors of Systolic Blood Pressure (SBP), a critical health marker associated with numerous cardiovascular risks and mortality. Utilizing statistical models and inferences, this research aimed to elucidate the relationships between SBP and various demographic, behavioral, and biological factors in a sample of 500 patients.
+
+## Key Findings
+Our exploratory data analysis revealed that among the continuous variables—age, weight, height, and BMI—weight, height, and BMI exhibited significant linear relationships with SBP, whereas age did not significantly predict SBP when considered independently. Further examination of categorical variables showed that treatment for hypertension and race were highly influential in predicting SBP variations, pointing to both genetic and lifestyle factors as key determinants.
+\\
+\\
+The development and comparison of two statistical models—a main effect model and an interaction model—underscored the complexity of the relationships affecting SBP. The interaction model, which included terms for potential interactions between continuous and categorical variables, demonstrated superior performance over the main effect model across several statistical metrics, including adjusted R-squared and AIC values. This suggests that SBP prediction accuracy benefits significantly from considering the nuanced interplay between various factors.
+\\
+\\
+Our analysis revealed that weight, height, and BMI are significantly associated with SBP, establishing them as key predictors. This finding suggests a clear link between physical characteristics and cardiovascular health, emphasizing the role of body composition in blood pressure regulation. Interestingly, age did not emerge as a significant predictor of SBP when analyzed independently. This outcome challenges the conventional understanding of aging as a dominant factor in the development of hypertension. It suggests that while age is undoubtedly related to increased SBP, its effects are possibly mediated through other factors or conditions that accrue or worsen with age, such as arterial stiffness, rather than age per se being a direct contributor.
+\\
+\\
+The moderate changes in SBP distribution across categories of lifestyle factors—such as marital status, smoking habits, exercise frequency, alcohol intake, and educational levels—illuminate the multifactorial nature of blood pressure regulation. These findings highlight the potential of lifestyle modifications in SBP management and the importance of incorporating behavioral health interventions into comprehensive treatment plans.
+\subsection*{Impact on the Field}
+Our findings contribute valuable insights into the multifaceted nature of SBP determinants, highlighting the importance of both genetic factors (such as race) and lifestyle factors (such as treatment for hypertension). By demonstrating the enhanced predictive power of models that incorporate interactions between variables, this study encourages a more nuanced approach to researching and understanding cardiovascular health risks.
+\\
+\\
+Our study offers clinicians a more sophisticated framework for assessing cardiovascular risk. Understanding the interplay between weight, race, lifestyle factors, and treatment for hypertension can lead to more personalized patient care. For instance, the predictive value of weight and BMI on SBP emphasizes the importance of nutritional counseling and weight management in clinical settings. Similarly, recognizing the differential impact of race on SBP could guide more tailored screening and intervention strategies, acknowledging genetic susceptibilities and social determinants of health.
+\\
+\\
+The limitations of our study, particularly the challenges in model validation, highlight the need for further research into additional variables and their interactions that may influence SBP. The pursuit of more comprehensive models necessitates large-scale, multi-center studies that include a wide range of demographic groups and more granular data on genetic factors, environmental exposures, and psychosocial stressors. Such research could unveil previously unrecognized predictors of SBP, offering new targets for intervention and prevention.
+
+\subsection*{Limitations and Future Research}
+While our study has provided meaningful insights, it is not without limitations. The interaction model, despite its statistical robustness, showed a significant prediction error when validated against a subset of the data. This discrepancy underscores the model's limited predictive power and suggests that other unexamined variables or complex interactions might play a crucial role in SBP variation.
+\\
+\\
+Furthermore, our study's focus on a specific sample population limits the generalizability of our findings across different demographics and geographical regions. The models developed here are based on available data and may not fully account for other influential factors such as genetic predispositions, environmental factors, or the impact of specific medications on SBP.
+\\
+\\
+For future research, there is a clear need to explore additional variables and potentially more complex modeling approaches that can accommodate the multifactorial nature of SBP. Longitudinal studies might offer insights into how the relationships between SBP and its predictors evolve over time. Investigating the genetic basis of SBP variation, especially in the context of race and ethnicity, could also provide deeper understanding and lead to more personalized approaches to managing and predicting cardiovascular risk.
+\\
+\\
+In conclusion, this study advances our understanding of the significant predictors of SBP, leveraging statistical models to highlight the complex interactions at play. The insights gained lay a foundation for future research, emphasizing the need for more nuanced models and broader datasets to enhance our predictive capabilities and ultimately inform better cardiovascular health interventions.
+
+## References
+Theodore, R. F., Broadbent, J., Nagin, D., Ambler, A., Hogan, S., Ramrakha, S., Cutfield, W., Williams, M. J. A., Harrington, H., Moffitt, T. E., Caspi, A., Milne, B., & Poulton, R. (2015). Childhood to Early-Midlife Systolic Blood Pressure Trajectories: Early-Life Predictors, Effect Modifiers, and Adult Cardiovascular Outcomes. Hypertension (Dallas, Tex. 1979), 66(6), 1108–1115. https://doi.org/10.1161/HYPERTENSIONAHA.115.05831
+
+Cené, C. W., Roter, D., Carson, K. A., Miller, E. R., & Cooper, L. A. (2009). The Effect of Patient Race and Blood Pressure Control on Patient-Physician Communication. Journal of General Internal Medicine : JGIM, 24(9), 1057–1064. https://doi.org/10.1007/s11606-009-1051-4
