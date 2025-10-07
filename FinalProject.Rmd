@@ -1,7 +1,5 @@
 ---
 title: "A Case Study on the Influence of Lifestyle Factors on Systolic Blood Pressure"
-date: "2024-04-08"
-output: "pdf_document"
 ---
 
 ```{r setup, include=TRUE}
